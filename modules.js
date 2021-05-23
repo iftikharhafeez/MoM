@@ -1,6 +1,3 @@
-const fs = require('fs')
-const FlatFile = require('./flatfile_database');
-
 const mongoose = require('mongoose');
 module.exports = () => {
 
