@@ -1,12 +1,6 @@
 const { Request: OauthRequest, Response: OauthResponse, ServerError } = require('oauth2-server');
 
-// create authorize and authenticate function
-// authorize will be the username and password exchange for access token
-
 function authorize(req, res, next) {
-
-    
-
 }
 
 async function requestToken(req, res, next) {
@@ -23,11 +17,10 @@ async function authenticate(req, res, next) {
 
     try {
         const token = await req.sessionData.oauth.authenticate(oauthRequest, oauthResponse);
-
         req.user = token.user;
-
         next();
-    } catch (error) {
+    }
+    catch (error) {
         if (error instanceof ServerError) res.status(error.inner.statusCode).json(error.inner);
         res.status(error.statusCode || 500).json(error);
     }
