@@ -3,8 +3,6 @@ const _ = require('lodash');
 const moment = require('moment');
 const validator = require('./validator');
 const bootstrapFactory = require('./bootstrap/index');
-
-
 const Errors = require('./errors');
 const { authenticate, requestToken } = require('./authenticator');
 
@@ -13,9 +11,7 @@ function throwError(res, error, message) {
 }
 
 module.exports = function(app, modules){
-  // bind object to req
   const bootstrap = bootstrapFactory(modules);
-
   app.use(bootstrap.load);
 
   app.get('/home', function(req,res){
@@ -50,18 +46,16 @@ module.exports = function(app, modules){
 
 
   app.post('/meetings/create', authenticate, async function(req,res) {
-   // console.log('body data', {user :  req.user});
       const validationResponse = validator.meetingValidator(req.body);
       if (!_.isEmpty(validationResponse.error)) {
         res.status(403).json(validationResponse.error);
         return;
       }
 
-      //let meetingsArr = modules.meetingsDb.loadContent();
       let newMeeting = validationResponse.value; 
       for(const user of newMeeting.attendees){
         const existingUser = await req.sessionData.models.userModel.loadUser(user);
-       // console.log(existingUser);
+
         if(!existingUser){
           throwError(res, Errors.InvalidUser, 'attandee ' + user + ' dosent exists');
       return;
@@ -69,8 +63,7 @@ module.exports = function(app, modules){
       }
       for(const user of newMeeting.details){
         const existingUser = await req.sessionData.models.userModel.loadUser(user.owner);
-        //console.log(check);
-        //console.log(user.owner);
+
         if(!existingUser){
           throwError(res, Errors.InvalidUser, 'username ' + user.owner + ' dosent exists');
       return;
@@ -79,53 +72,25 @@ module.exports = function(app, modules){
 
       newMeeting.owner = req.user.username;
       req.sessionData.models.meetingModel.createMeeting(newMeeting);
-      //meetingsArr.push(newMeeting);
-      //modules.meetingsDb.writeContent(meetingsArr);
 
-      // if (data === 'object' && data !== null) {
-      //   console.log(data)
-      // } else {
-      //   let meetingsArr = modules.meetingsDb.loadContent();
-      //   meetingsArr.push(validationResponse.value);
-      //   modules.meetingsDb.writeContent(meetingsArr);
-      // }
-    /**
-     * - load existing content from database
-     * - append to content
-     * - write new content to database
-     */
-    // modules.meetingsDb.writeContent(meetings)
     
     res.json(req.body);
   });
 
   app.get('/meetings/list', authenticate, async (req,res) => {
     console.log("requesting list of meetings");
-    //const meetings = modules.meetingsDb.loadContent();
-    //var query = req.query;
-    //let result = meetings.filter(meeting => meeting.owner.username === req.user.username);
-    //let result = await req.sessionData.models.meetingModel.loadMeetingsForOwner(req.user.username);
-    
 
     if(_.isEmpty(req.query)) {
-
       let meetings = await req.sessionData.models.meetingModel.loadMeetingsForOwner(req.user.username)
-      //console.log(meetings);
-
       for(const meeting of meetings){
         for(let i=0 ; i < meeting.attendees.length; i++){
           let userDetail = await req.sessionData.models.userModel.loadUser(meeting.attendees[i]);
           const userData = _.pick(userDetail,['firstName','lastName','title', 'username']);
-          if(meeting.attendees[i] === meeting.owner){
-            meeting.owner = userData;
-          }
-
+          if(meeting.attendees[i] === meeting.owner) meeting.owner = userData;
           meeting.attendees[i] = userData;
         }
       }
       res.json(meetings);
-
-      console.log('triggered');
       return;
     }
     if(req.query.attendee){
@@ -133,14 +98,6 @@ module.exports = function(app, modules){
       res.json(await req.sessionData.models.meetingModel.loadMeetingsUsingFilter(req.user.username, req.query.attendee));
       return;
     }
-
-  // if owner_firstname is defined filter by owner firstname
-    // if(query.owner_firstname){
-    //   result = result.filter(meeting => _.toLower(meeting.owner.firstName) === _.toLower(query.owner_firstname));
-    // }
-    // if(query.owner_lastname){
-    //   result = result.filter(meeting => meeting.owner.lastName === query.owner_lastname);
-    // }
     if(query.attendee_firstname){
       result = result.filter((meeting) => {
         return meeting.attendees.find(at => at.firstName === query.attendee_firstname) !== undefined;
@@ -156,22 +113,7 @@ module.exports = function(app, modules){
       result = result.filter(meeting => moment(meeting.startTime).isBefore(query.endtime));
     }
     res.send(result);
-
-  // TODO: if owner_lastname is defined filter by owner lastname
-
-
-  // TODO: 
-
- 
-
-    
-    //console.log(query);
   });
-
-
-
-
-
 
   app.delete('/home', function(req,res){
 
